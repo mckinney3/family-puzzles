@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Family Word Search</title>
+<style>
+  :root {
+    --cell-size: min(4.05vw, 34px);
+    --gap: 2px;
+    --found: #d9f5d6;
+    --select: #fff1a8;
+  }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: white;
+    color: #111;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  main {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 14px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 34px;
+    margin: 8px 0 2px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 18px;
+    margin: 0 0 12px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 10px 0 14px;
+  }
+  button {
+    font-size: 18px;
+    padding: 10px 14px;
+    border: 1px solid #555;
+    background: #f6f6f6;
+    border-radius: 8px;
+  }
+  #status {
+    text-align: center;
+    font-size: 18px;
+    min-height: 24px;
+    margin: 8px 0;
+    font-weight: bold;
+  }
+  .board-wrap {
+    position: relative;
+    margin: 0 auto;
+    width: calc(22 * var(--cell-size) + 21 * var(--gap));
+    height: calc(22 * var(--cell-size) + 21 * var(--gap));
+    touch-action: none;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(22, var(--cell-size));
+    grid-template-rows: repeat(22, var(--cell-size));
+    gap: var(--gap);
+    position: absolute;
+    inset: 0;
+  }
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    border: 1px solid #b5b5b5;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: calc(var(--cell-size) * .62);
+    background: white;
+  }
+  .cell.selected { background: var(--select); }
+  .cell.found { background: var(--found); }
+  #overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .word-section {
+    margin-top: 18px;
+  }
+  .word-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    margin: 8px 0;
+  }
+  #words {
+    columns: 2;
+    column-gap: 32px;
+    font-size: 20px;
+    max-width: 650px;
+    margin: 0 auto 20px;
+  }
+  .word {
+    break-inside: avoid;
+    padding: 4px 0;
+  }
+  .word.done {
+    text-decoration: line-through;
+    color: #555;
+  }
+  .hint {
+    text-align: center;
+    font-size: 16px;
+    margin: 10px auto;
+    max-width: 760px;
+  }
+  @media (max-width: 700px) {
+    :root { --cell-size: min(4.25vw, 28px); --gap: 1px; }
+    h1 { font-size: 28px; }
+    .subtitle { font-size: 16px; }
+    button { font-size: 16px; padding: 9px 11px; }
+    #words { columns: 1; font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>MY FAMILY</h1>
+  <p class="subtitle">Find the names of family members and loved ones hidden in the puzzle.</p>
+
+  <div class="controls">
+    <button onclick="clearSelection()">Clear Selection</button>
+    <button onclick="showHint()">Hint</button>
+    <button onclick="showSolution()">Show Solution</button>
+    <button onclick="resetPuzzle()">Reset</button>
+  </div>
+  <div id="status">Drag across letters to select a name.</div>
+
+  <div class="board-wrap" id="boardWrap">
+    <div id="grid"></div>
+    <svg id="overlay"></svg>
+  </div>
+
+  <p class="hint">Works with mouse, finger, or Apple Pencil. Drag from the first letter to the last letter of a name.</p>
+
+  <section class="word-section">
+    <div class="word-title">Word List</div>
+    <div id="words"></div>
+  </section>
+</main>
+
+<script>
+const SIZE = 22;
+const gridLetters = [["I", "Q", "E", "I", "L", "R", "A", "H", "C", "Z", "R", "D", "V", "R", "D", "K", "J", "Z", "Z", "U", "Y", "V"], ["J", "O", "R", "O", "B", "E", "R", "T", "S", "R", "H", "A", "G", "R", "A", "N", "D", "D", "A", "D", "D", "Y"], ["C", "D", "G", "R", "T", "D", "Y", "O", "M", "D", "R", "A", "N", "Y", "A", "M", "L", "V", "F", "A", "E", "M"], ["A", "N", "R", "G", "J", "H", "A", "Z", "N", "E", "Z", "C", "F", "R", "J", "E", "S", "S", "E", "I", "M", "N"], ["F", "Y", "O", "M", "N", "T", "J", "C", "M", "A", "D", "Z", "S", "M", "J", "O", "H", "N", "S", "O", "N", "Y"], ["I", "S", "V", "D", "B", "I", "R", "U", "E", "V", "R", "W", "G", "B", "J", "J", "H", "T", "R", "Z", "V", "K"], ["A", "V", "E", "A", "E", "J", "R", "E", "G", "J", "G", "N", "G", "P", "E", "A", "Y", "B", "N", "C", "Z", "Z"], ["E", "G", "R", "N", "F", "V", "B", "E", "B", "J", "I", "L", "L", "R", "R", "T", "H", "E", "C", "O", "S", "G"], ["M", "A", "Y", "O", "U", "N", "G", "B", "L", "O", "O", "D", "S", "A", "W", "N", "S", "W", "L", "R", "L", "C"], ["G", "I", "C", "O", "B", "B", "R", "J", "W", "A", "R", "G", "S", "V", "B", "E", "U", "Y", "Q", "R", "D", "W"], ["B", "L", "N", "E", "Y", "P", "P", "O", "P", "H", "T", "E", "B", "A", "Z", "I", "L", "E", "Z", "X", "A", "P"], ["T", "M", "T", "K", "V", "F", "U", "C", "H", "A", "R", "L", "E", "S", "V", "M", "N", "V", "V", "D", "C", "H"], ["B", "T", "G", "E", "V", "Z", "U", "D", "E", "Z", "W", "V", "S", "Y", "J", "L", "Q", "N", "N", "O", "D", "W"], ["Y", "S", "M", "A", "R", "Y", "H", "A", "Z", "E", "L", "I", "J", "N", "E", "F", "R", "Q", "V", "R", "C", "J"], ["A", "S", "C", "T", "W", "E", "M", "V", "Q", "Y", "T", "V", "B", "T", "D", "N", "O", "U", "H", "U", "O", "Z"], ["R", "N", "A", "O", "J", "P", "A", "I", "A", "L", "J", "I", "D", "N", "A", "M", "N", "A", "Z", "Y", "Y", "O"], ["L", "U", "X", "L", "T", "J", "R", "S", "R", "Y", "G", "Y", "S", "S", "U", "Z", "T", "I", "M", "K", "T", "G"], ["F", "B", "L", "A", "B", "T", "Y", "S", "Y", "M", "D", "D", "P", "Z", "I", "S", "L", "A", "K", "T", "Y", "N"], ["V", "F", "D", "U", "V", "T", "C", "G", "A", "H", "S", "A", "M", "E", "I", "R", "R", "Q", "A", "C", "V", "W"], ["D", "Y", "P", "R", "Q", "Y", "G", "M", "H", "U", "Z", "Q", "R", "R", "P", "I", "O", "M", "K", "K", "M", "T"], ["U", "N", "Z", "A", "Y", "E", "A", "U", "I", "K", "V", "P", "K", "B", "E", "F", "H", "T", "D", "X", "W", "B"], ["W", "Q", "W", "Y", "P", "E", "L", "B", "E", "A", "N", "N", "A", "E", "Z", "U", "F", "V", "V", "M", "X", "Z"]];
+const words = [{"display": "PEGGY", "clean": "PEGGY", "cells": [[21, 4], [20, 5], [19, 6], [18, 7], [17, 8]]}, {"display": "ROBERT SR", "clean": "ROBERTSR", "cells": [[1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9]]}, {"display": "ROBERT JR", "clean": "ROBERTJR", "cells": [[9, 10], [8, 9], [7, 8], [6, 7], [5, 6], [4, 5], [3, 4], [2, 3]]}, {"display": "ELIZABETH", "clean": "ELIZABETH", "cells": [[10, 17], [10, 16], [10, 15], [10, 14], [10, 13], [10, 12], [10, 11], [10, 10], [10, 9]]}, {"display": "MCKINNEY", "clean": "MCKINNEY", "cells": [[19, 20], [18, 19], [17, 18], [16, 17], [15, 16], [14, 15], [13, 14], [12, 13]]}, {"display": "YOUNGBLOOD", "clean": "YOUNGBLOOD", "cells": [[8, 2], [8, 3], [8, 4], [8, 5], [8, 6], [8, 7], [8, 8], [8, 9], [8, 10], [8, 11]]}, {"display": "MAYNARD", "clean": "MAYNARD", "cells": [[2, 15], [2, 14], [2, 13], [2, 12], [2, 11], [2, 10], [2, 9]]}, {"display": "CHARLES", "clean": "CHARLES", "cells": [[11, 7], [11, 8], [11, 9], [11, 10], [11, 11], [11, 12], [11, 13]]}, {"display": "BETTY", "clean": "BETTY", "cells": [[9, 4], [10, 3], [11, 2], [12, 1], [13, 0]]}, {"display": "JOAN", "clean": "JOAN", "cells": [[15, 4], [15, 3], [15, 2], [15, 1]]}, {"display": "DON", "clean": "DON", "cells": [[12, 20], [12, 19], [12, 18]]}, {"display": "BIG MAMA", "clean": "BIGMAMA", "cells": [[14, 12], [15, 11], [16, 10], [17, 9], [18, 8], [19, 7], [20, 6]]}, {"display": "ANNA", "clean": "ANNA", "cells": [[21, 12], [21, 11], [21, 10], [21, 9]]}, {"display": "SARAH", "clean": "SARAH", "cells": [[9, 12], [8, 13], [7, 14], [6, 15], [5, 16]]}, {"display": "LAURA", "clean": "LAURA", "cells": [[16, 3], [17, 3], [18, 3], [19, 3], [20, 3]]}, {"display": "JOHNSON", "clean": "JOHNSON", "cells": [[4, 14], [4, 15], [4, 16], [4, 17], [4, 18], [4, 19], [4, 20]]}, {"display": "DAN", "clean": "DAN", "cells": [[5, 3], [6, 3], [7, 3]]}, {"display": "MARY", "clean": "MARY", "cells": [[14, 6], [15, 6], [16, 6], [17, 6]]}, {"display": "ERIN", "clean": "ERIN", "cells": [[7, 7], [6, 6], [5, 5], [4, 4]]}, {"display": "SCOTT", "clean": "SCOTT", "cells": [[13, 1], [14, 2], [15, 3], [16, 4], [17, 5]]}, {"display": "CHARLIE", "clean": "CHARLIE", "cells": [[0, 8], [0, 7], [0, 6], [0, 5], [0, 4], [0, 3], [0, 2]]}, {"display": "POPPY", "clean": "POPPY", "cells": [[10, 8], [10, 7], [10, 6], [10, 5], [10, 4]]}, {"display": "MARY HAZEL", "clean": "MARYHAZEL", "cells": [[13, 2], [13, 3], [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10]]}, {"display": "GAIL", "clean": "GAIL", "cells": [[7, 1], [8, 1], [9, 1], [10, 1]]}, {"display": "MANDI", "clean": "MANDI", "cells": [[15, 15], [15, 14], [15, 13], [15, 12], [15, 11]]}, {"display": "JOY MARIE", "clean": "JOYMARIE", "cells": [[13, 21], [14, 20], [15, 19], [16, 18], [17, 17], [18, 16], [19, 15], [20, 14]]}, {"display": "MEG", "clean": "MEG", "cells": [[4, 8], [5, 8], [6, 8]]}, {"display": "DAVIS", "clean": "DAVIS", "cells": [[12, 7], [13, 7], [14, 7], [15, 7], [16, 7]]}, {"display": "JILL", "clean": "JILL", "cells": [[7, 9], [7, 10], [7, 11], [7, 12]]}, {"display": "JESSE", "clean": "JESSE", "cells": [[3, 14], [3, 15], [3, 16], [3, 17], [3, 18]]}, {"display": "BRADY", "clean": "BRADY", "cells": [[20, 13], [19, 12], [18, 11], [17, 10], [16, 9]]}, {"display": "HARLEY", "clean": "HARLEY", "cells": [[11, 21], [10, 20], [9, 19], [8, 18], [7, 17], [6, 16]]}, {"display": "GROVER", "clean": "GROVER", "cells": [[2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2]]}, {"display": "BETSY", "clean": "BETSY", "cells": [[5, 13], [6, 14], [7, 15], [8, 16], [9, 17]]}, {"display": "GRAND DADDY", "clean": "GRANDDADDY", "cells": [[1, 12], [1, 13], [1, 14], [1, 15], [1, 16], [1, 17], [1, 18], [1, 19], [1, 20], [1, 21]]}, {"display": "TORI", "clean": "TORI", "cells": [[20, 17], [19, 16], [18, 15], [17, 14]]}, {"display": "KRISTA", "clean": "KRISTA", "cells": [[20, 12], [19, 13], [18, 14], [17, 15], [16, 16], [15, 17]]}, {"display": "AMY", "clean": "AMY", "cells": [[2, 19], [3, 20], [4, 21]]}, {"display": "MATT", "clean": "MATT", "cells": [[19, 17], [18, 18], [17, 19], [16, 20]]}];
+const found = new Set();
+let selecting = false;
+let startCell = null;
+let currentPath = [];
+
+const gridEl = document.getElementById("grid");
+const statusEl = document.getElementById("status");
+const overlay = document.getElementById("overlay");
+const boardWrap = document.getElementById("boardWrap");
+
+function cellId(r,c) { return "cell-" + r + "-" + c; }
+
+function renderGrid() {
+  gridEl.innerHTML = "";
+  for (let r=0; r<SIZE; r++) {
+    for (let c=0; c<SIZE; c++) {
+      const div = document.createElement("div");
+      div.className = "cell";
+      div.id = cellId(r,c);
+      div.dataset.r = r;
+      div.dataset.c = c;
+      div.textContent = gridLetters[r][c];
+      gridEl.appendChild(div);
+    }
+  }
+  sizeOverlay();
+}
+
+function sizeOverlay() {
+  const rect = boardWrap.getBoundingClientRect();
+  overlay.setAttribute("width", rect.width);
+  overlay.setAttribute("height", rect.height);
+  overlay.setAttribute("viewBox", "0 0 " + rect.width + " " + rect.height);
+}
+
+function renderWords() {
+  const list = document.getElementById("words");
+  list.innerHTML = "";
+  for (const w of words) {
+    const div = document.createElement("div");
+    div.className = "word";
+    div.id = "word-" + w.clean;
+    div.textContent = "☐ " + w.display;
+    list.appendChild(div);
+  }
+}
+
+function getCellFromPoint(x,y) {
+  const el = document.elementFromPoint(x,y);
+  if (!el || !el.classList.contains("cell")) return null;
+  return [parseInt(el.dataset.r), parseInt(el.dataset.c)];
+}
+
+function pathBetween(a,b) {
+  if (!a || !b) return [];
+  const [r1,c1] = a, [r2,c2] = b;
+  const dr = Math.sign(r2-r1);
+  const dc = Math.sign(c2-c1);
+  const lenR = Math.abs(r2-r1);
+  const lenC = Math.abs(c2-c1);
+  if (!(r1===r2 || c1===c2 || lenR===lenC)) return [];
+  const steps = Math.max(lenR, lenC);
+  const path = [];
+  for (let i=0; i<=steps; i++) path.push([r1+dr*i, c1+dc*i]);
+  return path;
+}
+
+function markSelected(path) {
+  document.querySelectorAll(".cell.selected").forEach(e => e.classList.remove("selected"));
+  for (const [r,c] of path) document.getElementById(cellId(r,c)).classList.add("selected");
+}
+
+function sameCells(a,b) {
+  if (a.length !== b.length) return false;
+  for (let i=0; i<a.length; i++) if (a[i][0]!==b[i][0] || a[i][1]!==b[i][1]) return false;
+  return true;
+}
+
+function checkPath(path) {
+  for (const w of words) {
+    if (found.has(w.clean)) continue;
+    const forward = w.cells;
+    const backward = [...w.cells].reverse();
+    if (sameCells(path, forward) || sameCells(path, backward)) {
+      found.add(w.clean);
+      markFound(w);
+      statusEl.textContent = "Found: " + w.display + "  (" + found.size + " of " + words.length + ")";
+      if (found.size === words.length) statusEl.textContent = "Wonderful! You found every name.";
+      return true;
+    }
+  }
+  return false;
+}
+
+function markFound(w) {
+  for (const [r,c] of w.cells) document.getElementById(cellId(r,c)).classList.add("found");
+  const wordEl = document.getElementById("word-" + w.clean);
+  wordEl.classList.add("done");
+  wordEl.textContent = "☑ " + w.display;
+  drawLine(w.cells);
+}
+
+function pointerDown(e) {
+  const p = e.touches ? e.touches[0] : e;
+  const cell = getCellFromPoint(p.clientX, p.clientY);
+  if (!cell) return;
+  selecting = true;
+  startCell = cell;
+  currentPath = [cell];
+  markSelected(currentPath);
+  e.preventDefault();
+}
+
+function pointerMove(e) {
+  if (!selecting) return;
+  const p = e.touches ? e.touches[0] : e;
+  const end = getCellFromPoint(p.clientX, p.clientY);
+  if (!end) return;
+  const path = pathBetween(startCell, end);
+  if (path.length) {
+    currentPath = path;
+    markSelected(path);
+  }
+  e.preventDefault();
+}
+
+function pointerUp(e) {
+  if (!selecting) return;
+  selecting = false;
+  if (!checkPath(currentPath)) statusEl.textContent = "Not a listed name. Try again.";
+  clearSelection(false);
+  e.preventDefault();
+}
+
+function clearSelection(update=true) {
+  document.querySelectorAll(".cell.selected").forEach(e => e.classList.remove("selected"));
+  currentPath = [];
+  startCell = null;
+  if (update) statusEl.textContent = "Selection cleared.";
+}
+
+function cellCenter(r,c) {
+  const wrap = boardWrap.getBoundingClientRect();
+  const el = document.getElementById(cellId(r,c)).getBoundingClientRect();
+  return [el.left - wrap.left + el.width/2, el.top - wrap.top + el.height/2];
+}
+
+function drawLine(cells) {
+  sizeOverlay();
+  const [r1,c1] = cells[0];
+  const [r2,c2] = cells[cells.length-1];
+  const [x1,y1] = cellCenter(r1,c1);
+  const [x2,y2] = cellCenter(r2,c2);
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", x1);
+  line.setAttribute("y1", y1);
+  line.setAttribute("x2", x2);
+  line.setAttribute("y2", y2);
+  line.setAttribute("stroke", "#111");
+  line.setAttribute("stroke-width", "4");
+  line.setAttribute("stroke-linecap", "round");
+  line.setAttribute("opacity", "0.95");
+  overlay.appendChild(line);
+}
+
+function redrawAllLines() {
+  overlay.innerHTML = "";
+  requestAnimationFrame(() => {
+    sizeOverlay();
+    for (const w of words) {
+      if (found.has(w.clean)) drawLine(w.cells);
+    }
+  });
+}
+
+function showHint() {
+  const remaining = words.filter(w => !found.has(w.clean));
+  if (!remaining.length) {
+    statusEl.textContent = "All names have been found.";
+    return;
+  }
+  const w = remaining[0];
+  const [r,c] = w.cells[0];
+  const cell = document.getElementById(cellId(r,c));
+  cell.classList.add("selected");
+  statusEl.textContent = "Hint: Start " + w.display + " on the highlighted letter.";
+  setTimeout(() => cell.classList.remove("selected"), 2500);
+}
+
+function showSolution() {
+  for (const w of words) {
+    if (!found.has(w.clean)) {
+      found.add(w.clean);
+      for (const [r,c] of w.cells) document.getElementById(cellId(r,c)).classList.add("found");
+      const wordEl = document.getElementById("word-" + w.clean);
+      wordEl.classList.add("done");
+      wordEl.textContent = "☑ " + w.display;
+    }
+  }
+  redrawAllLines();
+  statusEl.textContent = "Solution shown.";
+}
+
+function resetPuzzle() {
+  found.clear();
+  overlay.innerHTML = "";
+  document.querySelectorAll(".cell").forEach(e => e.className = "cell");
+  renderWords();
+  statusEl.textContent = "Puzzle reset. Drag across letters to select a name.";
+}
+
+gridEl.addEventListener("mousedown", pointerDown);
+window.addEventListener("mousemove", pointerMove);
+window.addEventListener("mouseup", pointerUp);
+gridEl.addEventListener("touchstart", pointerDown, {passive:false});
+window.addEventListener("touchmove", pointerMove, {passive:false});
+window.addEventListener("touchend", pointerUp, {passive:false});
+window.addEventListener("resize", redrawAllLines);
+
+renderGrid();
+renderWords();
+</script>
+</body>
+</html>
